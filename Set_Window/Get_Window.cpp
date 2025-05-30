@@ -7,7 +7,6 @@
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "kernel32.lib")
 
-// 获取进程名称
 std::string GetProcessNameFromId(DWORD processId) {
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnapshot == INVALID_HANDLE_VALUE) {
