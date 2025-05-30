@@ -4,17 +4,13 @@
 #include <cctype>
 #include <sstream>
 #include <algorithm>
-
-// 转换字符串为窗口句柄
 HWND ParseHandle(const std::string& input) {
     std::string cleanInput = input;
     
-    // 移除空格
     cleanInput.erase(std::remove_if(cleanInput.begin(), cleanInput.end(), 
         [](unsigned char c) { return std::isspace(c); }), 
         cleanInput.end());
     
-    // 检查是否为十六进制
     bool isHex = false;
     if (cleanInput.size() > 2 && cleanInput.substr(0, 2) == "0x") {
         isHex = true;
@@ -28,7 +24,6 @@ HWND ParseHandle(const std::string& input) {
         cleanInput.pop_back();
     }
     
-    // 字符串转换为数值
     std::stringstream ss;
     UINT_PTR value = 0;
     
@@ -52,7 +47,6 @@ int main() {
     std::cout << "Hexadecimal format: 0x1234 or 1234h\n";
     std::cout << "Decimal format: 123456\n\n";
 
-    // 获取父窗口句柄
     std::string fatherInput;
     std::cout << "Enter parent window handle: ";
     std::getline(std::cin, fatherInput);
@@ -69,7 +63,6 @@ int main() {
         return 1;
     }
 
-    // 获取子窗口句柄
     std::string childInput;
     std::cout << "Enter child window handle: ";
     std::getline(std::cin, childInput);
@@ -86,7 +79,6 @@ int main() {
         return 1;
     }
 
-    // 设置父窗口
     HWND prevParent = SetParent(hwndChild, hwndFather);
     
     if (prevParent) {
