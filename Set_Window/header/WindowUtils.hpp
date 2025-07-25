@@ -12,22 +12,26 @@
 #include <tlhelp32.h>
 #include <iostream>
 
+
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "kernel32.lib")
 
 namespace WindowUtils {
 
-// çª—å£ä¿¡æ¯ç»“æ„ä½“
+// ´°¿ÚĞÅÏ¢½á¹¹Ìå
 struct WindowInfo {
     HWND hWnd;
     DWORD processId;
     std::string processName;
     std::string windowTitle;
     
-    // æ‰“å°çª—å£ä¿¡æ¯
+    // ´òÓ¡´°¿ÚĞÅÏ¢
     void print() const {
         std::cout << std::left
-                  << std::setw(16) << reinterpret_cast<UINT_PTR>(hWnd)
+                  << std::dec
+                  << std::setw(24) << reinterpret_cast<DWORD64>(hWnd)
+                  << std::hex
+                  << std::setw(24) << hWnd
                   << std::setw(16) << processId
                   << std::setw(32) << processName
                   << windowTitle
@@ -35,7 +39,7 @@ struct WindowInfo {
     }
 };
 
-// è·å–è¿›ç¨‹å
+// »ñÈ¡½ø³ÌÃû
 static std::string GetProcessNameFromId(DWORD processId) {
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnapshot == INVALID_HANDLE_VALUE) {
@@ -61,20 +65,20 @@ static std::string GetProcessNameFromId(DWORD processId) {
     return "Unknown";
 }
 
-// æšä¸¾çª—å£å›è°ƒå‡½æ•°
+// Ã¶¾Ù´°¿Ú»Øµ÷º¯Êı
 static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     auto windows = reinterpret_cast<std::vector<WindowInfo>*>(lParam);
     if (IsWindowVisible(hwnd) && GetWindowTextLengthA(hwnd) > 0) {
         WindowInfo info;
         info.hWnd = hwnd;
         
-        // è·å–è¿›ç¨‹ID
+        // »ñÈ¡½ø³ÌID
         GetWindowThreadProcessId(hwnd, &info.processId);
         
-        // è·å–è¿›ç¨‹å
+        // »ñÈ¡½ø³ÌÃû
         info.processName = GetProcessNameFromId(info.processId);
         
-        // è·å–çª—å£æ ‡é¢˜
+        // »ñÈ¡´°¿Ú±êÌâ
         char title[256] = {0};
         GetWindowTextA(hwnd, title, sizeof(title));
         info.windowTitle = title;
@@ -84,17 +88,18 @@ static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
     return TRUE;
 }
 
-// API: æšä¸¾æ‰€æœ‰å¯è§çª—å£
+// API: Ã¶¾ÙËùÓĞ¿É¼û´°¿Ú
 inline std::vector<WindowInfo> EnumVisibleWindows() {
     std::vector<WindowInfo> windows;
     EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(&windows));
     return windows;
 }
 
-// API: æ‰“å°è¡¨å¤´
+// API: ´òÓ¡±íÍ·
 inline void PrintWindowListHead(){
     std::cout << std::left 
-              << std::setw(16) << "Window Handle"
+              << std::setw(24) << "Window Handle(DEC)"
+              << std::setw(24) << "Window Handle(HEX)"
               << std::setw(16) << "Process ID"
               << std::setw(32) << "Process Name"
               << "Window Title"
@@ -102,34 +107,31 @@ inline void PrintWindowListHead(){
     std::cout << std::setfill('-') << std::setw(100) << "" << std::setfill(' ') << std::endl;
 }
 
-// API: æ‰“å°çª—å£åˆ—è¡¨
+// API: ´òÓ¡´°¿ÚÁĞ±í
 inline void PrintWindowList() {
-    // æ‰“å°è¡¨å¤´
-    std::cout << std::left 
-              << std::setw(16) << "Window Handle"
-              << std::setw(16) << "Process ID"
-              << std::setw(32) << "Process Name"
-              << "Window Title"
-              << std::endl;
+    // ´òÓ¡±íÍ·
+    PrintWindowListHead();
+
+    // ´òÓ¡·Ö¸îÏß
     std::cout << std::setfill('-') << std::setw(100) << "" << std::setfill(' ') << std::endl;
     
-    // æšä¸¾å¹¶æ‰“å°çª—å£
+    // Ã¶¾Ù²¢´òÓ¡´°¿Ú
     auto windows = EnumVisibleWindows();
     for (const auto& window : windows) {
         window.print();
     }
 }
 
-// API: è§£æçª—å£å¥æŸ„
+// API: ½âÎö´°¿Ú¾ä±ú
 inline HWND ParseWindowHandle(const std::string& input) {
     std::string cleanInput = input;
     
-    // ç§»é™¤ç©ºæ ¼
+    // ÒÆ³ı¿Õ¸ñ
     cleanInput.erase(std::remove_if(cleanInput.begin(), cleanInput.end(), 
         [](unsigned char c) { return std::isspace(c); }), 
         cleanInput.end());
     
-    // æ£€æŸ¥åå…­è¿›åˆ¶æ ¼å¼
+    // ¼ì²éÊ®Áù½øÖÆ¸ñÊ½
     bool isHex = false;
     if (cleanInput.size() > 2 && cleanInput.substr(0, 2) == "0x") {
         isHex = true;
@@ -143,7 +145,7 @@ inline HWND ParseWindowHandle(const std::string& input) {
         cleanInput.pop_back();
     }
     
-    // å­—ç¬¦ä¸²è½¬æ•°å€¼
+    // ×Ö·û´®×ªÊıÖµ
     std::stringstream ss;
     UINT_PTR value = 0;
     
@@ -157,7 +159,7 @@ inline HWND ParseWindowHandle(const std::string& input) {
     return reinterpret_cast<HWND>(static_cast<UINT_PTR>(value));
 }
 
-// API: è®¾ç½®çª—å£çˆ¶å­å…³ç³»
+// API: ÉèÖÃ´°¿Ú¸¸×Ó¹ØÏµ
 inline bool SetWindowParent(HWND hwndChild, HWND hwndParent, HWND* prevParent = nullptr, DWORD* errorCode = nullptr) {
     if (!IsWindow(hwndChild)) {
         if (errorCode) *errorCode = ERROR_INVALID_WINDOW_HANDLE;
@@ -175,11 +177,11 @@ inline bool SetWindowParent(HWND hwndChild, HWND hwndParent, HWND* prevParent = 
     if (prevParent) *prevParent = prev;
     if (errorCode) *errorCode = error;
     
-    // æˆåŠŸæ¡ä»¶ï¼šè¿”å›äº†ä¹‹å‰çš„çˆ¶çª—å£å¥æŸ„æˆ–é”™è¯¯ç ä¸ºæˆåŠŸ
+    // ³É¹¦Ìõ¼ş£º·µ»ØÁËÖ®Ç°µÄ¸¸´°¿Ú¾ä±ú»ò´íÎóÂëÎª³É¹¦
     return prev != nullptr || error == ERROR_SUCCESS;
 }
 
-// API: äº¤äº’å¼è®¾ç½®çª—å£çˆ¶å­å…³ç³»
+// API: ½»»¥Ê½ÉèÖÃ´°¿Ú¸¸×Ó¹ØÏµ
 inline bool InteractiveSetParent() {
     std::cout << "\nWindow Parent Setting Tool\n";
     std::cout << "=========================\n\n";
@@ -187,7 +189,7 @@ inline bool InteractiveSetParent() {
     std::cout << "Hexadecimal format: 0x1234 or 1234h\n";
     std::cout << "Decimal format: 123456\n\n";
 
-    // è·å–çˆ¶çª—å£å¥æŸ„
+    // »ñÈ¡¸¸´°¿Ú¾ä±ú
     std::string fatherInput;
     std::cout << "Enter parent window handle: ";
     std::getline(std::cin, fatherInput);
@@ -204,7 +206,7 @@ inline bool InteractiveSetParent() {
         return false;
     }
 
-    // è·å–å­çª—å£å¥æŸ„
+    // »ñÈ¡×Ó´°¿Ú¾ä±ú
     std::string childInput;
     std::cout << "Enter child window handle: ";
     std::getline(std::cin, childInput);
@@ -221,7 +223,7 @@ inline bool InteractiveSetParent() {
         return false;
     }
 
-    // è®¾ç½®çª—å£çˆ¶å­å…³ç³»
+    // ÉèÖÃ´°¿Ú¸¸×Ó¹ØÏµ
     HWND prevParent = nullptr;
     DWORD errorCode = 0;
     bool success = SetWindowParent(hwndChild, hwndFather, &prevParent, &errorCode);
